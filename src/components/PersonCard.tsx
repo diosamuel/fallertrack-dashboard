@@ -2,12 +2,12 @@ import React from "react";
 // import { IconHeart } from '@tabler/icons-react';
 export default function PersonCard() {
   return (
-    <div className="w-[500px]">
+    <div className="w-full md:w-[500px]">
       {/* Profile */}
       {/* name of each tab group should be unique */}
       <div role="tablist" className="tabs tabs-boxed w-full">
         <input type="radio" name="my_tabs_3" className="tab flex-1" aria-label="Person" />
-        <div className="tab-content bg-base-100 border-base-300 p-6">
+        <div className="tab-content border-base-300 p-6">
           <div className="flex items-center gap-4 mb-2">
             <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Linda Nasution" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow" />
             <div>
@@ -33,7 +33,9 @@ export default function PersonCard() {
         </div>
 
         <input type="radio" name="my_tabs_3" className="tab" aria-label="Activity" defaultChecked />
-        <div className="tab-content bg-base-100 border-base-300 p-6">Tab content 2</div>
+        <div className="tab-content border-base-300 p-6">
+          Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.
+        </div>
       </div>
 
     </div>

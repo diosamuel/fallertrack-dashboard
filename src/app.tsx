@@ -131,7 +131,7 @@ const App = () => {
               <span className="font-semibold">Terdeteksi Jatuh</span>
             </div>
           </div>
-          <div className="absolute bottom-4 right-4 z-10">
+          <div className="absolute z-10 md:bottom-4 md:right-4 bottom-0 left-0 right-0">
             <PersonCard />
           </div>
         </div>
