@@ -219,9 +219,9 @@ const MapPage = () => {
               <img
                 src="https://cdn-icons-png.flaticon.com/512/609/609803.png"
                 alt="House location"
-                className="object-contain w-10 h-10"
+                className="object-contain w-16 h-16"
               />
-              <h1 className='text-black font-bold p-1 bg-white rounded-sm'>Panti Lansia</h1>
+              {/* <h1 className='text-black font-bold p-1 bg-white rounded-sm'>Panti Lansia</h1> */}
             </div>
           </AdvancedMarker>
           <AdvancedMarker
@@ -229,14 +229,14 @@ const MapPage = () => {
             position={posisiLansia}
             onClick={() => setInfoOpen(true)}
           >
-            <div className={`flex flex-col items-center justify-center animate-pulse overflow-hidden cursor-pointer ${isSOSActive ? 'bg-red-500 rounded-lg p-2' : ''}`}>
+            <div className={`flex flex-col items-center justify-center animate-pulse overflow-hidden cursor-pointer`}>
               <img
                 src="https://randomuser.me/api/portraits/women/44.jpg"
                 alt="Person location"
-                className={`w-12 h-12 object-cover rounded-full ${isSOSActive ? 'border-2 border-white' : 'bg-white'}`}
+                className={`w-14 h-14 object-cover rounded-full ${isSOSActive ? 'border-2 border-red-500' : 'bg-white'}`}
               />
-              <h1 className={`${isSOSActive ? 'text-white' : 'text-black font-bold p-1 bg-white rounded-sm'} rounded-lg p-1 mt-1`}>
-                {isSOSActive ? 'SOS Aktif!' : 'Lansia'}
+              <h1 className={`text-black font-bold p-2 bg-white mt-3`}>
+                Ms Elderina
               </h1>
             </div>
           </AdvancedMarker>
@@ -266,7 +266,6 @@ const MapPage = () => {
             <span className="font-semibold">Terdeteksi Jatuh</span>
           </div>
         </div> */}
-        <div className="absolute z-10 md:bottom-4 md:right-4 md:left-4 bottom-0 left-0 right-0">
           <PersonCard
             homeLocation={homeLocation}
             isEditMode={isEditMode}
@@ -276,8 +275,7 @@ const MapPage = () => {
             isSOSActive={isSOSActive}
             currentPosition={posisiLansia}
           />
-        </div>
-        <div className="absolute top-4 right-4 z-20">
+        <div className="absolute top-16 right-4 z-20">
           <div className="flex flex-col gap-2">
             <NearbySOSLocation locations={sosLocations} onLocationsChange={setSosLocations} />
           </div>

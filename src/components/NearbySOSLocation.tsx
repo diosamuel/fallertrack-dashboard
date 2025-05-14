@@ -20,7 +20,6 @@ interface NearbySOSLocationProps {
 const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLocationsChange }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isOpen, setIsOpen] = useState(false);
 
     const fetchNearbySOS = async () => {
         setLoading(true);
@@ -51,29 +50,11 @@ const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLoca
     };
 
     useEffect(() => {
-        if (isOpen) {
-            fetchNearbySOS();
-            // Refresh data every 5 minutes when open
-            const interval = setInterval(fetchNearbySOS, 300000);
-            return () => clearInterval(interval);
-        }
-    }, [isOpen]);
-
-    const toggleOpen = () => {
-        setIsOpen(!isOpen);
-    };
-
-    if (!isOpen) {
-        return (
-            <button
-                onClick={toggleOpen}
-                className="bg-white p-2 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center gap-2 text-sm font-medium text-gray-700"
-            >
-                <span className="text-xl">🏥</span>
-                <span>Nearby SOS</span>
-            </button>
-        );
-    }
+        fetchNearbySOS();
+        // Refresh data every 5 minutes
+        const interval = setInterval(fetchNearbySOS, 300000);
+        return () => clearInterval(interval);
+    }, []);
 
     if (loading) {
         return (
@@ -83,12 +64,6 @@ const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLoca
                         <span className="text-xl">🏥</span>
                         <h2 className="text-sm font-semibold text-gray-900">Nearby SOS Services</h2>
                     </div>
-                    <button
-                        onClick={toggleOpen}
-                        className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                        <span className="text-lg">✕</span>
-                    </button>
                 </div>
                 <div className="flex items-center justify-center p-4">
                     <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -105,11 +80,12 @@ const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLoca
                         <span className="text-xl">🏥</span>
                         <h2 className="text-sm font-semibold text-gray-900">Nearby SOS Services</h2>
                     </div>
-                    <button
-                        onClick={toggleOpen}
-                        className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                    <button 
+                        onClick={fetchNearbySOS}
+                        className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Refresh"
                     >
-                        <span className="text-lg">✕</span>
+                        <span className="text-lg">🔄</span>
                     </button>
                 </div>
                 <div className="p-3">
@@ -135,21 +111,13 @@ const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLoca
                     <span className="text-xl">🏥</span>
                     <h2 className="text-sm font-semibold text-gray-900">Nearby SOS Services</h2>
                 </div>
-                <div className="flex items-center gap-1">
-                    <button 
-                        onClick={fetchNearbySOS}
-                        className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Refresh"
-                    >
-                        <span className="text-lg">🔄</span>
-                    </button>
-                    <button
-                        onClick={toggleOpen}
-                        className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                        <span className="text-lg">✕</span>
-                    </button>
-                </div>
+                <button 
+                    onClick={fetchNearbySOS}
+                    className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Refresh"
+                >
+                    <span className="text-lg">🔄</span>
+                </button>
             </div>
 
             {/* Content */}

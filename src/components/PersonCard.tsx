@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 // import { IconHeart } from '@tabler/icons-react';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Alert, Snackbar } from '@mui/material';
@@ -10,6 +10,21 @@ interface HomeLocation {
   radius: number;
   nama: string;
   time: string;
+}
+
+interface ActivitySummary {
+  gps: {
+    summary: string;
+    steps: string[];
+  };
+  fallDetection: {
+    summary: string;
+    steps: string[];
+  };
+  currentDistance: {
+    summary: string;
+    steps: string[];
+  };
 }
 
 interface PersonCardProps {
@@ -36,11 +51,53 @@ const PersonCard: React.FC<PersonCardProps> = ({
 }) => {
   const [notifyAlert, setNotifyAlert] = useState(false);
   const [sosAlert, setSosAlert] = useState(false);
+  const [activitySummary, setActivitySummary] = useState<ActivitySummary | null>(null);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+  const [activityError, setActivityError] = useState<string | null>(null);
 
   // Dummy data for the last 7 days
   const dates = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const stepsData = [4500, 5200, 3800, 6000, 4800, 3500, 4200];
   const heartRateData = [75, 82, 78, 85, 80, 88, 76];
+
+  // Function to fetch activity summary
+  const fetchActivitySummary = async () => {
+    setLoadingActivity(true);
+    setActivityError(null);
+    try {
+      const response = await fetch('https://fallertrack.my.id/api/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          limit: 50,
+          startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity summary');
+      }
+
+      const data = await response.json();
+      console.log(data)
+      setActivitySummary(JSON.parse(data.text.replace('```json','').replace('```','')) || 'No activity data available');
+    } catch (error) {
+      setActivityError(error instanceof Error ? error.message : 'Failed to load activity summary');
+      console.error('Error fetching activity summary:', error);
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
+  // Fetch activity summary on component mount and every 5 minutes
+  useEffect(() => {
+    fetchActivitySummary();
+    const interval = setInterval(fetchActivitySummary, 300000); // 5 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSOSClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -68,164 +125,172 @@ const PersonCard: React.FC<PersonCardProps> = ({
     onSave?.();
   };
 
+  const renderActivitySection = (title: string, data: { summary: string; steps: string[] }) => (
+    <div className="mb-4 last:mb-0">
+      <h3 className="text-sm font-semibold text-gray-800 mb-2">
+        {title}
+      </h3>
+      <div className="space-y-2">
+        <p className="text-sm text-gray-600 italic">
+          {data.summary}
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          {data.steps.map((step, index) => (
+            <li key={index} className="text-sm text-gray-700">
+              {step}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <div className="tabs tabs-boxed w-fit">
-        <input type="radio" name="my_tabs_3" className="tab" aria-label="SOS" defaultChecked />
-        <div className="tab-content border-base-300 p-6">
-          <div className="flex items-center gap-4 mb-2">
-            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Linda Nasution" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow" />
-            <div>
-              <div className="font-semibold text-lg">Ms Elderina</div>
-              <div className="flex gap-2 mt-1">
-                {/* <span className="badge badge-neutral gap-1"><IconHeart size={16} className="text-red-500" /> 80 years</span> */}
-                {/* <span className="badge badge-neutral gap-1"><IconHeart size={16} className="text-red-500" /> Alzheimer</span> */}
+      {/* Information Card - Left Bottom */}
+      <div 
+        id="information" 
+        className="rounded-lg shadow-lg p-3 bg-white absolute z-10 left-4 bottom-8 max-w-sm"
+      >
+        <div className="flex items-center gap-4 mb-2">
+          <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Linda Nasution" className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shadow" />
+          <div>
+            <div className="font-semibold text-lg text-gray-800">Ms Elderina</div>
+            <div className="flex gap-2 mt-1">
+              <span className="badge badge-neutral gap-1">80 years</span>
+              <span className="badge badge-neutral gap-1">Alzheimer</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Current Position */}
+        {currentPosition && (
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100">
+            <div className="font-semibold text-sm mb-2 text-gray-700">Current Position</div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-gray-600">Latitude:</span>
+                <span className="ml-1 font-mono text-gray-800">{currentPosition.lat.toFixed(6)}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Longitude:</span>
+                <span className="ml-1 font-mono text-gray-800">{currentPosition.lng.toFixed(6)}</span>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Current Position */}
-          {currentPosition && (
-            <div className="mt-4 p-3 bg-blue-950 rounded-lg">
-              <div className="font-semibold text-sm mb-2">Current Position</div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="text-white">Latitude:</span>
-                  <span className="ml-1 font-mono">{currentPosition.lat.toFixed(6)}</span>
-                </div>
-                <div>
-                  <span className="text-white">Longitude:</span>
-                  <span className="ml-1 font-mono">{currentPosition.lng.toFixed(6)}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => window.open(
-                  `https://www.google.com/maps?q=${currentPosition.lat},${currentPosition.lng}`,
-                  '_blank'
-                )}
-                className="mt-2 w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-sm font-medium"
-              >
-                <span>🗺️</span>
-                View on Map
-              </button>
-            </div>
-          )}
-
-          {/* Description */}
-          <div className="mt-4">
-            <div className="font-semibold mb-1">Deskripsi</div>
-            <div className="text-sm text-white leading-snug">
-              <ul className="list-disc list-inside">
-                <li>Wearing white clothes</li>
-                <li>80 years old</li>
-                <li>Has Alzheimer's history</li>
-                <li>Height: 165 cm</li>
-                <li>Weight: 60 kg</li>
-                <li>Has birthmark on right cheek</li>
-                <li>Wears reading glasses</li>
-              </ul>
-            </div>
+        {/* Description */}
+        <div className="mt-4">
+          <h1 className="font-semibold mb-1 text-gray-700 text-sm">Description</h1>
+          <div className="text-sm text-gray-600 leading-snug">
+            <ul className="list-disc list-inside space-y-1">
+              <li>Wearing white clothes</li>
+              <li>80 years old</li>
+              <li>Has Alzheimer's history</li>
+              <li>Height: 165 cm</li>
+              <li>Weight: 60 kg</li>
+              <li>Has birthmark on right cheek</li>
+              <li>Wears reading glasses</li>
+            </ul>
           </div>
+        </div>
 
-          {/* Buttons */}
-          <div className="mt-6 flex flex-col gap-2">
+        {/* Buttons */}
+        <div className="mt-6 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleSOSClick}
+            className={`btn btn-block border-none cursor-pointer transition-colors duration-200 ${isSOSActive
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {isSOSActive ? 'Nonaktifkan SOS' : 'Aktifkan SOS'}
+          </button>
+        </div>
+      </div>
+
+      {/* Activity Card - Right Bottom */}
+      <div 
+        id="activity" 
+        className="rounded-lg shadow-lg p-3 bg-white absolute z-10 right-4 bottom-4 max-w-sm h-72 overflow-scroll"
+      >
+        <div className="sticky top-0 bg-white pb-2 border-b border-gray-100 mb-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800">Activity Patient Summary</h2>
             <button
-              type="button"
-              onClick={handleSOSClick}
-              className={`btn btn-block border-none cursor-pointer transition-colors duration-200 ${isSOSActive
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-gray-100 text-black hover:bg-gray-200'
-                }`}
+              onClick={fetchActivitySummary}
+              className="text-blue-500 hover:text-blue-600 text-sm flex items-center gap-1 p-1"
             >
-              {isSOSActive ? 'Nonaktifkan SOS' : 'Aktifkan SOS'}
+              <span>🔄</span>
+              Refresh
             </button>
           </div>
         </div>
 
-        <input type="radio" name="my_tabs_3" className="tab" aria-label="Activity" />
-        <div className="tab-content border-base-300 p-6">
-          <p>Resume Activity Here</p>
-        </div>
-
-        <input type="radio" name="my_tabs_3" className="tab" aria-label="Location" />
-        <div className="tab-content border-base-300 p-6">
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-4 text-lg">Home Location</h3>
-              <div>
-                {homeLocation ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-gray-500">Latitude</p>
-                        <p className="text-sm font-mono">{homeLocation.latitude}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-gray-500">Longitude</p>
-                        <p className="text-sm font-mono">{homeLocation.longitude}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-gray-500">Radius</p>
-                      <p className="text-sm">{homeLocation.radius}m</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-gray-500">Location Name</p>
-                      <p className="text-sm">{homeLocation.nama}</p>
-                    </div>
-                    <div className="pt-2 border-t border-gray-100">
-                      <p className="text-xs text-gray-400">
-                        Last updated: {new Date(homeLocation.time).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                      {isEditMode ? (
-                        <button
-                          onClick={handleSave}
-                          className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          <span>💾</span>
-                          Save Circle
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleEdit}
-                          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          <span>✏️</span>
-                          Edit Circle
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <span className="text-4xl mb-2 block">🏠</span>
-                    <p className="text-gray-500 font-medium">No home location set</p>
-                    <p className="text-sm text-gray-400 mt-1">Set your home location to enable location tracking</p>
-                    <button
-                      onClick={handleEdit}
-                      className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-medium flex items-center justify-center gap-2 mx-auto"
-                    >
-                      <span>📍</span>
-                      Set Home Location
-                    </button>
-                  </div>
-                )}
-              </div>
+        <div className="space-y-4">
+          {loadingActivity ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
-          </div>
+          ) : activityError ? (
+            <div className="text-red-500 text-sm p-3 bg-red-50 rounded-lg">
+              <p>{activityError}</p>
+              <button
+                onClick={fetchActivitySummary}
+                className="mt-2 text-blue-500 hover:text-blue-600 text-sm underline"
+              >
+                Try again
+              </button>
+            </div>
+          ) : activitySummary ? (
+            <div className="space-y-4 px-1">
+              {renderActivitySection("Location Updates", activitySummary.gps)}
+              {renderActivitySection("Fall Detection", activitySummary.fallDetection)}
+              {renderActivitySection("Distance Tracking", activitySummary.currentDistance)}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-4">
+              No activity data available
+            </div>
+          )}
         </div>
       </div>
+
       {/* Alerts */}
-      <Snackbar open={notifyAlert} autoHideDuration={6000} onClose={handleCloseNotify}>
-        <Alert onClose={handleCloseNotify} severity="success" sx={{ width: '100%' }}>
+      <Snackbar 
+        open={notifyAlert} 
+        autoHideDuration={6000} 
+        onClose={handleCloseNotify}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          position: 'absolute',
+          top: '16px',
+          left: '50% !important',
+          transform: 'translateX(-50%)',
+          width: 'auto'
+        }}
+      >
+        <Alert onClose={handleCloseNotify} severity="success" sx={{ width: '100%', backgroundColor: '#fff', color: '#2e7d32' }}>
           Location updated successfully!
         </Alert>
       </Snackbar>
 
-      <Snackbar open={sosAlert} autoHideDuration={6000} onClose={handleCloseSOS}>
-        <Alert onClose={handleCloseSOS} severity="error" sx={{ width: '100%' }}>
+      <Snackbar 
+        open={sosAlert} 
+        autoHideDuration={10000} 
+        onClose={handleCloseSOS}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          position: 'absolute',
+          top: '16px',
+          left: '50% !important',
+          transform: 'translateX(-50%)',
+          width: 'auto'
+        }}
+      >
+        <Alert onClose={handleCloseSOS} severity="error" sx={{ width: '100%', backgroundColor: '#fff', color: '#d32f2f' }}>
           SOS mode activated! Emergency services have been notified.
         </Alert>
       </Snackbar>
