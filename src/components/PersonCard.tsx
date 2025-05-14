@@ -2,16 +2,41 @@ import React, { useState } from "react";
 // import { IconHeart } from '@tabler/icons-react';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Alert, Snackbar } from '@mui/material';
+// import NearbySOSLocation from './NearbySOSLocation';
 
-interface PersonCardProps {
-  onSOSStatusChange: (status: boolean) => void;
-  isSOSActive: boolean;
+interface HomeLocation {
+  latitude: number;
+  longitude: number;
+  radius: number;
+  nama: string;
+  time: string;
 }
 
-export default function PersonCard({ onSOSStatusChange, isSOSActive }: PersonCardProps) {
+interface PersonCardProps {
+  homeLocation?: HomeLocation;
+  isEditMode?: boolean;
+  onEdit?: () => void;
+  onSave?: () => void;
+  onSOSStatusChange: (status: boolean) => void;
+  isSOSActive: boolean;
+  currentPosition?: {
+    lat: number;
+    lng: number;
+  };
+}
+
+const PersonCard: React.FC<PersonCardProps> = ({
+  homeLocation,
+  isEditMode = false,
+  onEdit,
+  onSave,
+  onSOSStatusChange,
+  isSOSActive,
+  currentPosition
+}) => {
   const [notifyAlert, setNotifyAlert] = useState(false);
   const [sosAlert, setSosAlert] = useState(false);
-  
+
   // Dummy data for the last 7 days
   const dates = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const stepsData = [4500, 5200, 3800, 6000, 4800, 3500, 4200];
@@ -35,124 +60,177 @@ export default function PersonCard({ onSOSStatusChange, isSOSActive }: PersonCar
     setSosAlert(false);
   };
 
+  const handleEdit = () => {
+    onEdit?.();
+  };
+
+  const handleSave = () => {
+    onSave?.();
+  };
+
   return (
-    <div className="w-full md:w-[500px]">
-      {/* Profile */}
-      {/* name of each tab group should be unique */}
-      <div role="tablist" className="tabs tabs-boxed w-full">
-        <input type="radio" name="my_tabs_3" className="tab flex-1" aria-label="Person" defaultChecked/>
+    <div>
+      <div className="tabs tabs-boxed w-fit">
+        <input type="radio" name="my_tabs_3" className="tab" aria-label="SOS" defaultChecked />
         <div className="tab-content border-base-300 p-6">
           <div className="flex items-center gap-4 mb-2">
             <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Linda Nasution" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow" />
             <div>
-              <div className="font-semibold text-lg">Timotius Prayoga Gultom</div>
+              <div className="font-semibold text-lg">Ms Elderina</div>
               <div className="flex gap-2 mt-1">
                 {/* <span className="badge badge-neutral gap-1"><IconHeart size={16} className="text-red-500" /> 80 years</span> */}
                 {/* <span className="badge badge-neutral gap-1"><IconHeart size={16} className="text-red-500" /> Alzheimer</span> */}
               </div>
             </div>
           </div>
+
+          {/* Current Position */}
+          {currentPosition && (
+            <div className="mt-4 p-3 bg-blue-950 rounded-lg">
+              <div className="font-semibold text-sm mb-2">Current Position</div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-white">Latitude:</span>
+                  <span className="ml-1 font-mono">{currentPosition.lat.toFixed(6)}</span>
+                </div>
+                <div>
+                  <span className="text-white">Longitude:</span>
+                  <span className="ml-1 font-mono">{currentPosition.lng.toFixed(6)}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => window.open(
+                  `https://www.google.com/maps?q=${currentPosition.lat},${currentPosition.lng}`,
+                  '_blank'
+                )}
+                className="mt-2 w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-sm font-medium"
+              >
+                <span>🗺️</span>
+                View on Map
+              </button>
+            </div>
+          )}
+
           {/* Description */}
-          <div className="mt-2">
+          <div className="mt-4">
             <div className="font-semibold mb-1">Deskripsi</div>
             <div className="text-sm text-white leading-snug">
-              Memakai Baju Putih
+              <ul className="list-disc list-inside">
+                <li>Wearing white clothes</li>
+                <li>80 years old</li>
+                <li>Has Alzheimer's history</li>
+                <li>Height: 165 cm</li>
+                <li>Weight: 60 kg</li>
+                <li>Has birthmark on right cheek</li>
+                <li>Wears reading glasses</li>
+              </ul>
             </div>
           </div>
+
           {/* Buttons */}
           <div className="mt-6 flex flex-col gap-2">
-            <button 
+            <button
               type="button"
               onClick={handleSOSClick}
-              className={`btn btn-block border-none cursor-pointer transition-colors duration-200 ${
-                isSOSActive 
-                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                  : 'bg-gray-100 text-black hover:bg-gray-200'
-              }`}
+              className={`btn btn-block border-none cursor-pointer transition-colors duration-200 ${isSOSActive
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-gray-100 text-black hover:bg-gray-200'
+                }`}
             >
               {isSOSActive ? 'Nonaktifkan SOS' : 'Aktifkan SOS'}
             </button>
           </div>
         </div>
 
-        <input type="radio" name="my_tabs_3" className="tab" aria-label="Activity"  />
+        <input type="radio" name="my_tabs_3" className="tab" aria-label="Activity" />
+        <div className="tab-content border-base-300 p-6">
+          <p>Resume Activity Here</p>
+        </div>
+
+        <input type="radio" name="my_tabs_3" className="tab" aria-label="Location" />
         <div className="tab-content border-base-300 p-6">
           <div className="space-y-6">
             <div>
-              <h3 className="font-semibold mb-2">Daily Steps</h3>
-              <div className="h-[200px] w-full">
-                <LineChart
-                  series={[
-                    {
-                      data: stepsData,
-                      label: 'Steps',
-                      color: '#4CAF50',
-                    },
-                  ]}
-                  xAxis={[{ scaleType: 'point', data: dates }]}
-                  height={200}
-                  margin={{ top: 10, bottom: 30, left: 40, right: 10 }}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-2">Heart Rate</h3>
-              <div className="h-[200px] w-full">
-                <LineChart
-                  series={[
-                    {
-                      data: heartRateData,
-                      label: 'BPM',
-                      color: '#F44336',
-                    },
-                  ]}
-                  xAxis={[{ scaleType: 'point', data: dates }]}
-                  height={200}
-                  margin={{ top: 10, bottom: 30, left: 40, right: 10 }}
-                />
+              <h3 className="font-semibold mb-4 text-lg">Home Location</h3>
+              <div>
+                {homeLocation ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-gray-500">Latitude</p>
+                        <p className="text-sm font-mono">{homeLocation.latitude}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-gray-500">Longitude</p>
+                        <p className="text-sm font-mono">{homeLocation.longitude}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500">Radius</p>
+                      <p className="text-sm">{homeLocation.radius}m</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500">Location Name</p>
+                      <p className="text-sm">{homeLocation.nama}</p>
+                    </div>
+                    <div className="pt-2 border-t border-gray-100">
+                      <p className="text-xs text-gray-400">
+                        Last updated: {new Date(homeLocation.time).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                      {isEditMode ? (
+                        <button
+                          onClick={handleSave}
+                          className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                        >
+                          <span>💾</span>
+                          Save Circle
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleEdit}
+                          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                        >
+                          <span>✏️</span>
+                          Edit Circle
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <span className="text-4xl mb-2 block">🏠</span>
+                    <p className="text-gray-500 font-medium">No home location set</p>
+                    <p className="text-sm text-gray-400 mt-1">Set your home location to enable location tracking</p>
+                    <button
+                      onClick={handleEdit}
+                      className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-medium flex items-center justify-center gap-2 mx-auto"
+                    >
+                      <span>📍</span>
+                      Set Home Location
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Alert Dialogs */}
-      <Snackbar 
-        open={notifyAlert} 
-        autoHideDuration={6000} 
-        onClose={handleCloseNotify}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        sx={{ top: '5rem !important' }}
-      >
-        <Alert 
-          onClose={handleCloseNotify} 
-          severity="info" 
-          sx={{ width: '100%' }}
-          variant="filled"
-        >
-          Notifikasi telah dikirim ke lansia untuk kembali ke panti
+      {/* Alerts */}
+      <Snackbar open={notifyAlert} autoHideDuration={6000} onClose={handleCloseNotify}>
+        <Alert onClose={handleCloseNotify} severity="success" sx={{ width: '100%' }}>
+          Location updated successfully!
         </Alert>
       </Snackbar>
 
-      <Snackbar 
-        open={sosAlert} 
-        autoHideDuration={6000} 
-        onClose={handleCloseSOS}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        sx={{ top: '5rem !important' }}
-      >
-        <Alert 
-          onClose={handleCloseSOS} 
-          severity={isSOSActive ? "error" : "success"}
-          sx={{ width: '100%' }}
-          variant="filled"
-        >
-          {isSOSActive 
-            ? "SOS Alert telah dikirim! Tim medis sedang dalam perjalanan"
-            : "SOS Alert telah dinonaktifkan"}
+      <Snackbar open={sosAlert} autoHideDuration={6000} onClose={handleCloseSOS}>
+        <Alert onClose={handleCloseSOS} severity="error" sx={{ width: '100%' }}>
+          SOS mode activated! Emergency services have been notified.
         </Alert>
       </Snackbar>
     </div>
   );
-} 
+};
+
+export default PersonCard; 

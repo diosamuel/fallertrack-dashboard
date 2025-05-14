@@ -11,6 +11,7 @@ import {
 import { Circle, type CircleProps } from '../components/circle';
 import { Route } from '../components/routes';
 import PersonCard from '../components/PersonCard';
+import NearbySOSLocation from '../components/NearbySOSLocation';
 
 interface HomeLocation {
   latitude: number;
@@ -25,6 +26,18 @@ interface LatLngLiteral {
   lng: number;
 }
 
+interface SOSLocation {
+  place_id: string;
+  name: string;
+  vicinity: string;
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
+}
+
 const MapPage = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [homeLocation, setHomeLocation] = useState<HomeLocation | null>(null);
@@ -32,7 +45,9 @@ const MapPage = () => {
   const [radius, setRadius] = useState(400);
   const [infoOpen, setInfoOpen] = useState(false);
   const [isSOSActive, setIsSOSActive] = useState(false);
-  const [posisiLansia, setPosisiLansia] = useState<LatLngLiteral>({ lat: -5.363431060686779, lng:  105.3068113236821 });
+  const [posisiLansia, setPosisiLansia] = useState<LatLngLiteral>({ lat: -5.363431060686779, lng: 105.3068113236821 });
+  const [sosLocations, setSosLocations] = useState<SOSLocation[]>([]);
+  const [sosMarkerRefs, setSosMarkerRefs] = useState<google.maps.marker.AdvancedMarkerElement[]>([]);
 
   // Fetch home location data
   useEffect(() => {
@@ -43,7 +58,7 @@ const MapPage = () => {
             'Content-Type': 'application/json'
           }
         });
-        
+
         const { latitude, longitude, radius: homeRadius } = response.data;
         setHomeLocation(response.data);
         setCenter({ lat: latitude, lng: longitude });
@@ -65,7 +80,7 @@ const MapPage = () => {
             'Content-Type': 'application/json'
           }
         });
-        
+
         const { latitude, longitude } = response.data;
         console.log('Current location updated:', { latitude, longitude });
         setPosisiLansia({ lat: latitude, lng: longitude });
@@ -91,6 +106,37 @@ const MapPage = () => {
 
     // Cleanup function to clear interval when component unmounts
     return () => clearInterval(intervalId);
+  }, []);
+
+  // Function to fetch SOS locations
+  const fetchNearbySOS = async () => {
+    try {
+      const response = await fetch('https://fallertrack.my.id/api/sos-location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          radius: 2000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch SOS locations');
+      }
+
+      const data = await response.json();
+      setSosLocations(data.results || []);
+    } catch (err) {
+      console.error('Error fetching SOS locations:', err);
+    }
+  };
+
+  // Fetch SOS locations periodically
+  useEffect(() => {
+    fetchNearbySOS();
+    const interval = setInterval(fetchNearbySOS, 300000); // every 5 minutes
+    return () => clearInterval(interval);
   }, []);
 
   const handleCenterChanged = useCallback((newCenter: google.maps.LatLng | null) => {
@@ -142,7 +188,7 @@ const MapPage = () => {
       <div className="relative w-screen h-screen">
         <Map
           defaultZoom={13}
-          defaultCenter={center}
+          defaultCenter={posisiLansia}
           mapId='da37f3254c6a6d1c'
           className="w-full h-full"
         >
@@ -169,13 +215,13 @@ const MapPage = () => {
             ref={houseMarkerRef}
             position={isEditMode ? center : { lat: homeLocation.latitude, lng: homeLocation.longitude }}
           >
-            <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-lg p-1">
+            <div className="flex flex-col items-center justify-center p-3">
               <img
                 src="https://cdn-icons-png.flaticon.com/512/609/609803.png"
                 alt="House location"
                 className="object-contain w-10 h-10"
               />
-              <h1>Panti Lansia</h1>
+              <h1 className='text-black font-bold p-1 bg-white rounded-sm'>Panti Lansia</h1>
             </div>
           </AdvancedMarker>
           <AdvancedMarker
@@ -189,11 +235,29 @@ const MapPage = () => {
                 alt="Person location"
                 className={`w-12 h-12 object-cover rounded-full ${isSOSActive ? 'border-2 border-white' : 'bg-white'}`}
               />
-              <h1 className={`${isSOSActive ? 'text-white' : 'bg-white'} rounded-lg p-1 mt-1`}>
+              <h1 className={`${isSOSActive ? 'text-white' : 'text-black font-bold p-1 bg-white rounded-sm'} rounded-lg p-1 mt-1`}>
                 {isSOSActive ? 'SOS Aktif!' : 'Lansia'}
               </h1>
             </div>
           </AdvancedMarker>
+
+          {/* SOS Location Markers */}
+          {sosLocations.map((location) => (
+            <AdvancedMarker
+              key={location.place_id}
+              position={{ lat: location.geometry.location.lat, lng: location.geometry.location.lng }}
+            >
+              <div className="flex flex-col items-center justify-center rounded-lg p-1.5 cursor-pointer hover:shadow-xl transition-shadow">
+                <div className="w-8 h-8 rounded-full bg-red-400 flex items-center justify-center">
+                  <span className="text-sm">🏥</span>
+                </div>
+                <div className='text-black font-bold p-1 bg-white rounded-sm'>
+                  {location.name}
+                </div>
+                
+              </div>
+            </AdvancedMarker>
+          ))}
         </Map>
 
         {/* <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20">
@@ -203,44 +267,19 @@ const MapPage = () => {
           </div>
         </div> */}
         <div className="absolute z-10 md:bottom-4 md:right-4 md:left-4 bottom-0 left-0 right-0">
-          <PersonCard 
+          <PersonCard
+            homeLocation={homeLocation}
+            isEditMode={isEditMode}
+            onEdit={handleEdit}
+            onSave={handleSave}
             onSOSStatusChange={handleSOSStatusChange}
             isSOSActive={isSOSActive}
+            currentPosition={posisiLansia}
           />
         </div>
         <div className="absolute top-4 right-4 z-20">
           <div className="flex flex-col gap-2">
-            <div className="bg-white p-2 rounded-lg text-black">
-              {homeLocation && (
-                <>
-                  <h1 className="text-sm font-semibold">Home Location:</h1>
-                  <p className="text-xs">Lat: {homeLocation.latitude}</p>
-                  <p className="text-xs">Lng: {homeLocation.longitude}</p>
-                  <p className="text-xs">Radius: {homeLocation.radius}m</p>
-                  <p className="text-xs mt-1">{homeLocation.nama}</p>
-                  <p className="text-xs text-gray-500">Last updated: {new Date(homeLocation.time).toLocaleString()}</p>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="absolute top-20 left-4 z-20">
-          <div className="flex flex-col gap-2">
-            {isEditMode ? (
-              <button
-                onClick={handleSave}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors"
-              >
-                Save Circle
-              </button>
-            ) : (
-              <button
-                onClick={handleEdit}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors"
-              >
-                Edit Circle
-              </button>
-            )}
+            <NearbySOSLocation locations={sosLocations} onLocationsChange={setSosLocations} />
           </div>
         </div>
       </div>
