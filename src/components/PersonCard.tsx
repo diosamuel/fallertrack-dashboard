@@ -69,7 +69,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
   };
 
   return (
-    <div>
+    <>
       <div className="tabs tabs-boxed w-fit">
         <input type="radio" name="my_tabs_3" className="tab" aria-label="SOS" defaultChecked />
         <div className="tab-content border-base-300 p-6">
@@ -229,7 +229,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
           SOS mode activated! Emergency services have been notified.
         </Alert>
       </Snackbar>
-    </div>
+    </>
   );
 };
 
