@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from '../config/api';
 
 interface EmergencyContact {
   callStatus: boolean;
@@ -41,7 +42,7 @@ const FallDetectionAlert: React.FC = () => {
 
   const fetchFallNotification = async () => {
     try {
-      const response = await fetch('https://fallertrack.my.id/api/fall-notification', {
+      const response = await fetch(API_ENDPOINTS.FALL_NOTIFICATION, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

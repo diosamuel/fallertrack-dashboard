@@ -120,7 +120,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
         throw new Error('Failed to update SOS status');
       }
 
-      setSosAlert(true);
+      setSosAlert(!true);
       onSOSStatusChange(newStatus);
     } catch (error) {
       console.error('Error updating SOS status:', error);
