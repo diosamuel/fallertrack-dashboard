@@ -20,19 +20,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 
 import Navigation from './components/Navigation';
-import MapPage from './pages/index';
-import About from './pages/about';
-import Test from './pages/testApi';
+import MapPage from './pages/index';;
 
 const App = () => {
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
-        {/* <Navigation /> */}
+        <Navigation />
         <Routes>
           <Route path="/" element={<MapPage />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/test" element={<Test />} />
         </Routes>
       </div>
     </Router>

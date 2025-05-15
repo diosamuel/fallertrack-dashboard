@@ -6,6 +6,11 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+#include <ArduinoJson.h>
+#include <SPIFFS.h>
+#include "AudioFileSourceSPIFFS.h"
+#include "AudioGeneratorMP3.h"
+#include "AudioOutputI2S.h"
 
 // GYRO ACCELEROMETER
 Adafruit_MPU6050 mpu;
@@ -40,15 +45,79 @@ const char *GYRO_FALL_API = "https://fallertrack.my.id/api/fall-detection";
 const char *NAVIGATION_API = "https://fallertrack.my.id/api/text-to-speech";
 
 // HTTPS endpoint GET
-const char *SOS_API = "https://fallertrack.my.id/api/sos";
+const char *ALERT_SOS_API = "https://fallertrack.my.id/api/alert";
 
 unsigned long lastPostTime = 0;
 const unsigned long postInterval = 3000; // 3 seconds
 
+// Audio components
+AudioGeneratorMP3* mp3;
+AudioFileSourceSPIFFS* file;
+AudioOutputI2S* out;
+
+// Function to download and play MP3
+void downloadAndPlayMP3(const char* url) {
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip certificate validation
+
+    // Parse URL to get host and path
+    String urlString = String(url);
+    String host = urlString.substring(urlString.indexOf("//") + 2, urlString.indexOf("/", 8));
+    String path = urlString.substring(urlString.indexOf("/", 8));
+
+    Serial.println("Connecting to host: " + host);
+    if (!client.connect(host.c_str(), 443)) {
+        Serial.println("Connection failed");
+        return;
+    }
+
+    // Make HTTP request
+    client.print(String("GET ") + path + " HTTP/1.1\r\n" +
+                "Host: " + host + "\r\n" +
+                "Connection: close\r\n\r\n");
+
+    // Skip headers
+    while (client.connected()) {
+        String line = client.readStringUntil('\n');
+        if (line == "\r") break;
+    }
+
+    // Open file for writing
+    File f = SPIFFS.open("/nav.mp3", FILE_WRITE);
+    if (!f) {
+        Serial.println("Failed to open file");
+        return;
+    }
+
+    // Download file
+    int bytes = 0;
+    while (client.connected() || client.available()) {
+        uint8_t buf[512];
+        int len = client.read(buf, sizeof(buf));
+        if (len > 0) {
+            f.write(buf, len);
+            bytes += len;
+        } else {
+            delay(10);
+        }
+    }
+    f.close();
+    Serial.printf("Downloaded %d bytes\n", bytes);
+
+    // Play the audio
+    file = new AudioFileSourceSPIFFS("/nav.mp3");
+    out = new AudioOutputI2S(0, AudioOutputI2S::INTERNAL_DAC);
+    out->SetOutputModeMono(true);
+    out->SetGain(0.5);
+
+    mp3 = new AudioGeneratorMP3();
+    mp3->begin(file, out);
+}
+
 // Function to get navigation instructions
 void getNavigationInstructions() {
     WiFiClientSecure client;
-    client.setInsecure(); // Not validating SSL certificate (for testing only)
+    client.setInsecure();
     HTTPClient https;
 
     if (https.begin(client, NAVIGATION_API)) {
@@ -59,8 +128,22 @@ void getNavigationInstructions() {
         if (httpResponseCode > 0) {
             String response = https.getString();
             Serial.println("Navigation Instructions: " + response);
-            // Here you can add additional handling for the navigation response
-            // For example, playing audio or displaying on a screen
+
+            // Parse JSON response
+            StaticJsonDocument<1024> doc;
+            DeserializationError error = deserializeJson(doc, response);
+
+            if (!error) {
+                const char* text = doc["text"];
+                const char* url = doc["bucketStatus"]["url"];
+                Serial.println("Navigation text: " + String(text));
+                Serial.println("Audio URL: " + String(url));
+
+                // Download and play the audio if URL is available
+                if (url) {
+                    downloadAndPlayMP3(url);
+                }
+            }
         }
         
         https.end();
@@ -134,6 +217,44 @@ void postAccelerometerData(float accelero[3], float gyro[3]) {
     }
 }
 
+// Function to check alert status
+void checkAlertStatus() {
+    WiFiClientSecure client;
+    client.setInsecure(); // Not validating SSL certificate (for testing only)
+    HTTPClient https;
+
+    if (https.begin(client, ALERT_SOS_API)) {
+        int httpResponseCode = https.GET();
+        Serial.print("Alert GET Response Code: ");
+        Serial.println(httpResponseCode);
+        
+        if (httpResponseCode > 0) {
+            String response = https.getString();
+            Serial.println("Alert Response: " + response);
+            
+            // Parse JSON response
+            // Parse JSON response
+            StaticJsonDocument<200> doc;
+            DeserializationError error = deserializeJson(doc, response);
+            
+            if (!error && doc["sos"].as<bool>()) {
+                // Alert is active, trigger buzzer
+                digitalWrite(BUZZER_PIN, HIGH);
+                delay(1000);  // Beep for 500ms
+                digitalWrite(BUZZER_PIN, LOW); 
+                delay(100);  // Pause for 500ms
+            } else {
+                // No alert, ensure buzzer is off
+                digitalWrite(BUZZER_PIN, LOW);
+            }
+        }
+        
+        https.end();
+    } else {
+        Serial.println("Alert HTTPS connection failed");
+    }
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -142,11 +263,18 @@ void setup()
     // Init Navigation Button
     pinMode(NAVIGATION_BUTTON_PIN, INPUT_PULLUP);
 
+    // Init Buzzer
+    pinMode(BUZZER_PIN, OUTPUT);
+    digitalWrite(BUZZER_PIN, LOW);
+
     // Init GPS
     GPSserial.begin(9600, SERIAL_8N1, RXD2, TXD2);
 
-    // pinMode(BUZZER_PIN, OUTPUT);
-    // digitalWrite(BUZZER_PIN, LOW);
+    // Init SPIFFS
+    if (!SPIFFS.begin(true)) {
+        Serial.println("SPIFFS initialization failed!");
+        return;
+    }
 
     // Init Wifi
     Serial.println("Connecting to WiFi...");
@@ -179,6 +307,20 @@ void setup()
 
 void loop()
 {
+    // Handle MP3 playback
+    if (mp3 && mp3->isRunning()) {
+        if (!mp3->loop()) {
+            mp3->stop();
+            delete file;
+            delete out;
+            delete mp3;
+            mp3 = nullptr;
+        }
+    }
+
+    // Check for alerts
+    checkAlertStatus();
+
     // Check navigation button with debounce
     if (digitalRead(NAVIGATION_BUTTON_PIN) == LOW) {  // Button pressed (active LOW with pullup)
         unsigned long currentTime = millis();
@@ -197,16 +339,17 @@ void loop()
         gps.encode(GPSserial.read());
     }
 
-    if (!gps.location.isValid())
+    if (gps.location.isValid())
     {
         // Default coordinates for Jakarta (Monas area)
-        double currentLat = -6.175392;  // Jakarta latitude
-        double currentLng = 106.827153; // Jakarta longitude
+        double currentLat = gps.location.lat();
+        double currentLng = gps.location.lng();
+
 
         Serial.print("Lat: ");
-        Serial.print(currentLat, 6);
+        Serial.print(currentLat);
         Serial.print(" | Lng: ");
-        Serial.println(currentLng, 6);
+        Serial.println(currentLng);
 
         if (!hasOrigin)
         {
@@ -247,5 +390,5 @@ void loop()
         Serial.println("Waiting for GPS data...");
     }
 
-    delay(1000);
+    delay(3000);
 }

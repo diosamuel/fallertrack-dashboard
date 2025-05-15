@@ -135,11 +135,6 @@ const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLoca
                                 className="p-3 hover:bg-gray-50 transition-colors"
                             >
                                 <div className="flex items-start gap-2">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <span className="text-sm">📍</span>
-                                        </div>
-                                    </div>
                                     <div className="flex-grow min-w-0">
                                         <h3 className="text-sm font-medium text-gray-900 truncate">
                                             {location.name}
@@ -157,13 +152,7 @@ const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLoca
                                             className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                                             title="Get Directions"
                                         >
-                                            <span className="text-sm">🗺️</span>
-                                        </button>
-                                        <button
-                                            className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Call Emergency"
-                                        >
-                                            <span className="text-sm">📞</span>
+                                            <span className="text-sm">Maps</span>
                                         </button>
                                     </div>
                                 </div>

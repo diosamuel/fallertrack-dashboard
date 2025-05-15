@@ -83,7 +83,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
 
       const data = await response.json();
       console.log(data)
-      setActivitySummary(JSON.parse(data.text.replace('```json','').replace('```','')) || 'No activity data available');
+      setActivitySummary(JSON.parse(data.text.replace('```json', '').replace('```', '')) || 'No activity data available');
     } catch (error) {
       setActivityError(error instanceof Error ? error.message : 'Failed to load activity summary');
       console.error('Error fetching activity summary:', error);
@@ -99,12 +99,32 @@ const PersonCard: React.FC<PersonCardProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const handleSOSClick = (e: React.MouseEvent) => {
+  const handleSOSClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     const newStatus = !isSOSActive;
     console.log("SOS button clicked, new status:", newStatus);
-    setSosAlert(true);
-    onSOSStatusChange(newStatus);
+
+    try {
+      const response = await fetch('https://fallertrack.my.id/api/alert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sos: !sosAlert
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update SOS status');
+      }
+
+      setSosAlert(true);
+      onSOSStatusChange(newStatus);
+    } catch (error) {
+      console.error('Error updating SOS status:', error);
+      // You might want to show an error alert here
+    }
   };
 
   const handleCloseNotify = (event?: React.SyntheticEvent | Event, reason?: string) => {
@@ -148,8 +168,8 @@ const PersonCard: React.FC<PersonCardProps> = ({
   return (
     <>
       {/* Information Card - Left Bottom */}
-      <div 
-        id="information" 
+      <div
+        id="information"
         className="rounded-lg shadow-lg p-3 bg-white absolute z-10 left-4 bottom-8 max-w-sm"
       >
         <div className="flex items-center gap-4 mb-2">
@@ -195,73 +215,76 @@ const PersonCard: React.FC<PersonCardProps> = ({
             </ul>
           </div>
         </div>
+        {/* Activity Card - Right Bottom */}
+        <div
+          id="activity"
+          className="mt-4 h-72 overflow-scroll"
+        >
+          <div className="sticky top-0 bg-white pb-2 border-b border-gray-100 mb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-black">Activity Patient Summary</h2>
+                <p className="text-sm text-gray-500">Last 7 days</p>
+              </div>
+              <button
+                onClick={fetchActivitySummary}
+                className="text-blue-500 hover:text-blue-600 text-sm flex items-center gap-1 p-1"
+              >
+                <span>🔄</span>
+              </button>
+            </div>
+          </div>
 
+          <div className="space-y-4">
+            {loadingActivity ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : activityError ? (
+              <div className="text-red-500 text-sm p-3 bg-red-50 rounded-lg">
+                <p>{activityError}</p>
+                <button
+                  onClick={fetchActivitySummary}
+                  className="mt-2 text-blue-500 hover:text-blue-600 text-sm underline"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : activitySummary ? (
+              <div className="space-y-4 px-1">
+                {renderActivitySection("Location Updates", activitySummary.gps)}
+                {renderActivitySection("Fall Detection", activitySummary.fallDetection)}
+                {renderActivitySection("Distance Tracking", activitySummary.currentDistance)}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-4">
+                No activity data available
+              </div>
+            )}
+          </div>
+        </div>
         {/* Buttons */}
         <div className="mt-6 flex flex-col gap-2">
           <button
             type="button"
             onClick={handleSOSClick}
-            className={`btn btn-block border-none cursor-pointer transition-colors duration-200 ${isSOSActive
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+              isSOSActive
+                ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
+                : 'bg-white border-2 border-red-500 text-red-500 hover:bg-red-50'
             }`}
           >
-            {isSOSActive ? 'Nonaktifkan SOS' : 'Aktifkan SOS'}
+            {isSOSActive ? 'Deactivate SOS Alert' : 'Send SOS Alert'}
           </button>
         </div>
       </div>
 
-      {/* Activity Card - Right Bottom */}
-      <div 
-        id="activity" 
-        className="rounded-lg shadow-lg p-3 bg-white absolute z-10 right-4 bottom-4 max-w-sm h-72 overflow-scroll"
-      >
-        <div className="sticky top-0 bg-white pb-2 border-b border-gray-100 mb-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800">Activity Patient Summary</h2>
-            <button
-              onClick={fetchActivitySummary}
-              className="text-blue-500 hover:text-blue-600 text-sm flex items-center gap-1 p-1"
-            >
-              <span>🔄</span>
-              Refresh
-            </button>
-          </div>
-        </div>
 
-        <div className="space-y-4">
-          {loadingActivity ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : activityError ? (
-            <div className="text-red-500 text-sm p-3 bg-red-50 rounded-lg">
-              <p>{activityError}</p>
-              <button
-                onClick={fetchActivitySummary}
-                className="mt-2 text-blue-500 hover:text-blue-600 text-sm underline"
-              >
-                Try again
-              </button>
-            </div>
-          ) : activitySummary ? (
-            <div className="space-y-4 px-1">
-              {renderActivitySection("Location Updates", activitySummary.gps)}
-              {renderActivitySection("Fall Detection", activitySummary.fallDetection)}
-              {renderActivitySection("Distance Tracking", activitySummary.currentDistance)}
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 py-4">
-              No activity data available
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Alerts */}
-      <Snackbar 
-        open={notifyAlert} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={notifyAlert}
+        autoHideDuration={6000}
         onClose={handleCloseNotify}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{
@@ -277,9 +300,9 @@ const PersonCard: React.FC<PersonCardProps> = ({
         </Alert>
       </Snackbar>
 
-      <Snackbar 
-        open={sosAlert} 
-        autoHideDuration={10000} 
+      <Snackbar
+        open={sosAlert}
+        autoHideDuration={10000}
         onClose={handleCloseSOS}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{

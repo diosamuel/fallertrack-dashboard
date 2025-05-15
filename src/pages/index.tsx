@@ -5,13 +5,15 @@ import {
   Map,
   useMap,
   AdvancedMarker,
-  useAdvancedMarkerRef
+  useAdvancedMarkerRef,
+  InfoWindow
 } from '@vis.gl/react-google-maps';
 
 import { Circle, type CircleProps } from '../components/circle';
 import { Route } from '../components/routes';
 import PersonCard from '../components/PersonCard';
 import NearbySOSLocation from '../components/NearbySOSLocation';
+import FallDetectionAlert from '../components/FallDetectionAlert';
 
 interface HomeLocation {
   latitude: number;
@@ -48,6 +50,8 @@ const MapPage = () => {
   const [posisiLansia, setPosisiLansia] = useState<LatLngLiteral>({ lat: -5.363431060686779, lng: 105.3068113236821 });
   const [sosLocations, setSosLocations] = useState<SOSLocation[]>([]);
   const [sosMarkerRefs, setSosMarkerRefs] = useState<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const [isHouseInfoOpen, setIsHouseInfoOpen] = useState(false);
+  const [selectedSOS, setSelectedSOS] = useState<string | null>(null);
 
   // Fetch home location data
   useEffect(() => {
@@ -186,6 +190,7 @@ const MapPage = () => {
   return (
     <APIProvider apiKey="AIzaSyCXqDSiV34e_jSIURIbxavQ2sf6ESSG7xc" onLoad={() => console.log('Maps API has loaded.')}>
       <div className="relative w-screen h-screen">
+        <FallDetectionAlert />
         <Map
           defaultZoom={13}
           defaultCenter={posisiLansia}
@@ -214,6 +219,7 @@ const MapPage = () => {
           <AdvancedMarker
             ref={houseMarkerRef}
             position={isEditMode ? center : { lat: homeLocation.latitude, lng: homeLocation.longitude }}
+            onClick={() => setIsHouseInfoOpen(true)}
           >
             <div className="flex flex-col items-center justify-center p-3">
               <img
@@ -221,9 +227,50 @@ const MapPage = () => {
                 alt="House location"
                 className="object-contain w-16 h-16"
               />
-              {/* <h1 className='text-black font-bold p-1 bg-white rounded-sm'>Panti Lansia</h1> */}
             </div>
           </AdvancedMarker>
+          {isHouseInfoOpen && (
+            <InfoWindow
+              position={{ lat: homeLocation.latitude, lng: homeLocation.longitude }}
+              onCloseClick={() => setIsHouseInfoOpen(false)}
+            >
+              <div className="p-2">
+                <h3 className="font-semibold text-gray-800 mb-2">Home</h3>
+                <p className="text-sm text-gray-600">
+                  <strong>Address:</strong> {homeLocation.nama || 'Not specified'}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>Last Updated:</strong> {new Date(homeLocation.time).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>Safe Radius:</strong> {homeLocation.radius}m
+                </p>
+                <div className="mt-3 flex justify-end gap-2">
+                  {isEditMode ? (
+                    <button
+                      onClick={() => {
+                        handleSave();
+                        setIsHouseInfoOpen(false);
+                      }}
+                      className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition-colors"
+                    >
+                      Confirm
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleEdit();
+                        setIsHouseInfoOpen(false);
+                      }}
+                      className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Edit Area
+                    </button>
+                  )}
+                </div>
+              </div>
+            </InfoWindow>
+          )}
           <AdvancedMarker
             ref={markerRef}
             position={posisiLansia}
@@ -233,30 +280,76 @@ const MapPage = () => {
               <img
                 src="https://randomuser.me/api/portraits/women/44.jpg"
                 alt="Person location"
-                className={`w-14 h-14 object-cover rounded-full ${isSOSActive ? 'border-2 border-red-500' : 'bg-white'}`}
+                className={`w-16 h-16 object-cover rounded-full ${isSOSActive ? 'border-2 border-red-500' : 'bg-white'}`}
               />
-              <h1 className={`text-black font-bold p-2 bg-white mt-3`}>
-                Ms Elderina
-              </h1>
             </div>
           </AdvancedMarker>
+          {infoOpen && (
+            <InfoWindow
+              position={posisiLansia}
+              onCloseClick={() => setInfoOpen(false)}
+            >
+              <div className="p-2">
+                <h3 className="font-semibold text-gray-800 mb-2">Current Location</h3>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">
+                    <strong>Latitude:</strong> {posisiLansia.lat.toFixed(6)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Longitude:</strong> {posisiLansia.lng.toFixed(6)}
+                  </p>
+                  {isSOSActive && (
+                    <div className="mt-2 py-1 px-2 bg-red-100 text-red-700 rounded text-sm">
+                      ⚠️ SOS Mode Active
+                    </div>
+                  )}
+                </div>
+              </div>
+            </InfoWindow>
+          )}
 
           {/* SOS Location Markers */}
           {sosLocations.map((location) => (
-            <AdvancedMarker
-              key={location.place_id}
-              position={{ lat: location.geometry.location.lat, lng: location.geometry.location.lng }}
-            >
-              <div className="flex flex-col items-center justify-center rounded-lg p-1.5 cursor-pointer hover:shadow-xl transition-shadow">
-                <div className="w-8 h-8 rounded-full bg-red-400 flex items-center justify-center">
-                  <span className="text-sm">🏥</span>
+            <React.Fragment key={location.place_id}>
+              <AdvancedMarker
+                position={{ lat: location.geometry.location.lat, lng: location.geometry.location.lng }}
+                onClick={() => setSelectedSOS(location.place_id)}
+              >
+                <div className="flex flex-col items-center justify-center rounded-lg p-1.5 cursor-pointer">
+                  <div className="w-8 h-8 rounded-full bg-red-400 flex items-center justify-center animate-pulse">
+                    <span className="text-sm">🏥</span>
+                  </div>
                 </div>
-                <div className='text-black font-bold p-1 bg-white rounded-sm'>
-                  {location.name}
-                </div>
-                
-              </div>
-            </AdvancedMarker>
+              </AdvancedMarker>
+              {selectedSOS === location.place_id && (
+                <InfoWindow
+                  position={{ lat: location.geometry.location.lat, lng: location.geometry.location.lng }}
+                  onCloseClick={() => setSelectedSOS(null)}
+                >
+                  <div className="p-2 min-w-[200px]">
+                    <h3 className="font-semibold text-gray-800 mb-2">{location.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{location.vicinity}</p>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => window.open(
+                          `https://www.google.com/maps/dir/?api=1&destination=${location.geometry.location.lat},${location.geometry.location.lng}`,
+                          '_blank'
+                        )}
+                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                      >
+                        Get Directions
+                      </button>
+                      <button
+                        onClick={() => window.open(`tel:112`)}
+                        className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                      >
+                        Emergency Call
+                      </button>
+                    </div>
+                  </div>
+                </InfoWindow>
+              )}
+            </React.Fragment>
           ))}
         </Map>
 
@@ -275,7 +368,7 @@ const MapPage = () => {
             isSOSActive={isSOSActive}
             currentPosition={posisiLansia}
           />
-        <div className="absolute top-16 right-4 z-20">
+        <div className="absolute top-20 right-4 z-20">
           <div className="flex flex-col gap-2">
             <NearbySOSLocation locations={sosLocations} onLocationsChange={setSosLocations} />
           </div>
