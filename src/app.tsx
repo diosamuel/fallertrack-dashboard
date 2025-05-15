@@ -20,7 +20,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 
 import Navigation from './components/Navigation';
-import MapPage from './pages/index';;
+import MapPage from './pages/index';
+import AboutPage from './pages/about';
 
 const App = () => {
   return (
@@ -29,6 +30,7 @@ const App = () => {
         <Navigation />
         <Routes>
           <Route path="/" element={<MapPage />} />
+          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </div>
     </Router>

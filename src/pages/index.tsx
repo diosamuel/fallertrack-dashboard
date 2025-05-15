@@ -14,6 +14,7 @@ import { Route } from '../components/routes';
 import PersonCard from '../components/PersonCard';
 import NearbySOSLocation from '../components/NearbySOSLocation';
 import FallDetectionAlert from '../components/FallDetectionAlert';
+import { API_ENDPOINTS } from '../config/api';
 
 interface HomeLocation {
   latitude: number;
@@ -57,7 +58,7 @@ const MapPage = () => {
   useEffect(() => {
     const fetchHomeLocation = async () => {
       try {
-        const response = await axios.get('https://fallertrack-backend-tvxyots97-reannn22s-projects.vercel.app/api/home', {
+        const response = await axios.get(API_ENDPOINTS.HOME, {
           headers: {
             'Content-Type': 'application/json'
           }
@@ -79,7 +80,7 @@ const MapPage = () => {
   useEffect(() => {
     const fetchCurrentLocation = async () => {
       try {
-        const response = await axios.get('https://fallertrack-backend-tvxyots97-reannn22s-projects.vercel.app/api/current-distance', {
+        const response = await axios.get(API_ENDPOINTS.CURRENT_DISTANCE, {
           headers: {
             'Content-Type': 'application/json'
           }
@@ -115,7 +116,7 @@ const MapPage = () => {
   // Function to fetch SOS locations
   const fetchNearbySOS = async () => {
     try {
-      const response = await fetch('https://fallertrack.my.id/api/sos-location', {
+      const response = await fetch(API_ENDPOINTS.SOS_LOCATION, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,7 +185,7 @@ const MapPage = () => {
   const [houseMarkerRef, houseMarker] = useAdvancedMarkerRef();
 
   if (!center || !homeLocation) {
-    return <div className="w-screen h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="w-screen h-screen flex items-center justify-center animate-pulse"><img src='https://diosamuel.github.io/Frame%2055(1).png' className='w-52'/></div>;
   }
 
   return (
@@ -280,7 +281,7 @@ const MapPage = () => {
               <img
                 src="https://randomuser.me/api/portraits/women/44.jpg"
                 alt="Person location"
-                className={`w-16 h-16 object-cover rounded-full ${isSOSActive ? 'border-2 border-red-500' : 'bg-white'}`}
+                className={`w-14 h-14 object-cover rounded-full ${isSOSActive ? 'border-2 border-red-500' : 'bg-white'}`}
               />
             </div>
           </AdvancedMarker>

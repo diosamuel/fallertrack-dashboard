@@ -1,11 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  IconAlertTriangle, 
-  IconMapPin, 
-  IconClock, 
-  IconPhone, 
-  IconMessage 
-} from '@tabler/icons-react';
 
 interface EmergencyContact {
   callStatus: boolean;
@@ -90,39 +83,13 @@ const FallDetectionAlert: React.FC = () => {
         {/* Main alert box */}
         <div className="relative bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg min-w-[300px]">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center">
-              <IconAlertTriangle className="w-8 h-8 animate-pulse" stroke={2} />
-            </div>
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-1 flex items-center gap-2">
-                Fall Detected!
-              </h3>
+              <h3 className="font-semibold text-lg mb-1">Fall Detected!</h3>
               <p className="text-sm opacity-90">{fallData.elderlyInfo.name} has fallen</p>
-              
               <div className="mt-3 text-sm space-y-1 opacity-80">
-                <p className="flex items-center gap-2">
-                  <IconMapPin className="w-4 h-4" />
-                  <span>Location: {fallData.latitude.toFixed(6)}, {fallData.longitude.toFixed(6)}</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <IconClock className="w-4 h-4" />
-                  <span>Time: {new Date(fallData.timestamp).toLocaleString()}</span>
-                </p>
-              </div>
-
-              <div className="mt-3 space-y-1 text-sm">
-                {fallData.notificationStatus.call && (
-                  <div className="flex items-center gap-2">
-                    <IconPhone className="w-4 h-4" />
-                    <span>{fallData.notificationStatus.call}</span>
-                  </div>
-                )}
-                {fallData.notificationStatus.message && (
-                  <div className="flex items-center gap-2">
-                    <IconMessage className="w-4 h-4" />
-                    <span>{fallData.notificationStatus.message}</span>
-                  </div>
-                )}
+                <p>Location: {fallData.latitude.toFixed(6)}, {fallData.longitude.toFixed(6)}</p>
+                <p>Time: {new Date(fallData.timestamp).toLocaleString()}</p>
               </div>
             </div>
           </div>

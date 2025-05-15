@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 // import { IconHeart } from '@tabler/icons-react';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Alert, Snackbar } from '@mui/material';
+import { API_ENDPOINTS } from '../config/api';
 // import NearbySOSLocation from './NearbySOSLocation';
 
 interface HomeLocation {
@@ -65,7 +66,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
     setLoadingActivity(true);
     setActivityError(null);
     try {
-      const response = await fetch('https://fallertrack.my.id/api/summarize', {
+      const response = await fetch(API_ENDPOINTS.SUMMARIZE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
     console.log("SOS button clicked, new status:", newStatus);
 
     try {
-      const response = await fetch('https://fallertrack.my.id/api/alert', {
+      const response = await fetch(API_ENDPOINTS.ALERT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

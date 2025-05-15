@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from '../config/api';
 
 interface SOSLocation {
   place_id: string;
@@ -25,7 +26,7 @@ const NearbySOSLocation: React.FC<NearbySOSLocationProps> = ({ locations, onLoca
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('https://fallertrack.my.id/api/sos-location', {
+            const response = await fetch(API_ENDPOINTS.SOS_LOCATION, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
