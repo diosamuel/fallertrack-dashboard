@@ -6,7 +6,7 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-export const BACKEND_API = import.meta.env.VITE_BACKEND_API || 'https://fallertrack.my.id';
+export const BACKEND_API = import.meta.env.VITE_BACKEND_API || 'https://fallertrack-be.my.id';
 
 export const API_ENDPOINTS = {
   HOME: `${BACKEND_API}/api/home`,

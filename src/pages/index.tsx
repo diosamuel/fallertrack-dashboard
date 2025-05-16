@@ -159,15 +159,46 @@ const MapPage = () => {
     }
   }, [isEditMode]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (center && homeLocation) {
-      // Update home location with new coordinates
-      setHomeLocation({
-        ...homeLocation,
-        latitude: center.lat,
-        longitude: center.lng,
-        radius: radius
-      });
+      try {
+        // First, delete existing home location
+        await fetch(API_ENDPOINTS.HOME, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        // Then, set new home location
+        const response = await fetch(API_ENDPOINTS.HOME, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            latitude: center.lat,
+            longitude: center.lng,
+            radius: radius
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update home location');
+        }
+
+        // Update local state after successful API calls
+        setHomeLocation({
+          ...homeLocation,
+          latitude: center.lat,
+          longitude: center.lng,
+          radius: radius
+        });
+      } catch (error) {
+        console.error('Error updating home location:', error);
+        // You might want to add error handling UI here
+      }
     }
     setIsEditMode(false);
   }, [center, radius, homeLocation]);

@@ -75,11 +75,6 @@ AudioOutputI2S* out = nullptr;
 bool shouldPlayAudio = false;
 String pendingAudioUrl = "";
 
-// Add these global variables after other declarations
-unsigned long lastWiFiCheck = 0;
-const unsigned long WIFI_CHECK_INTERVAL = 5000; // Check WiFi every 5 seconds
-bool isWiFiConnected = false;
-
 // Function to download and play MP3
 void downloadAndPlayMP3(const char* url) {
     portENTER_CRITICAL(&mutex);
@@ -163,35 +158,15 @@ void audioTaskFunction(void * parameter) {
 // Main Task - Runs on Core 1
 void mainTaskFunction(void * parameter) {
     for(;;) {
-        // Check WiFi connection status periodically
-        if (millis() - lastWiFiCheck >= WIFI_CHECK_INTERVAL) {
-            lastWiFiCheck = millis();
-            if (WiFi.status() != WL_CONNECTED) {
-                Serial.println("WiFi disconnected! Reconnecting...");
-                WiFi.reconnect();
-                delay(500);
-                isWiFiConnected = false;
-            } else if (!isWiFiConnected) {
-                Serial.println("WiFi reconnected!");
-                isWiFiConnected = true;
-            }
-        }
-
-        // Check for alerts only if WiFi is connected
-        if (isWiFiConnected) {
-            checkAlertStatus();
-        }
+        // Check for alerts
+        checkAlertStatus();
 
         // Check navigation button with debounce
         if (digitalRead(NAVIGATION_BUTTON_PIN) == LOW) {
             unsigned long currentTime = millis();
             if (currentTime - lastButtonPress > DEBOUNCE_DELAY) {
                 Serial.println("Navigation button pressed!");
-                if (isWiFiConnected) {
-                    getNavigationInstructions();
-                } else {
-                    Serial.println("Cannot get navigation - WiFi not connected");
-                }
+                getNavigationInstructions();
                 lastButtonPress = currentTime;
             }
         }
@@ -203,8 +178,7 @@ void mainTaskFunction(void * parameter) {
             gps.encode(GPSserial.read());
         }
 
-        // Enhanced GPS validation
-        if (gps.location.isValid() && gps.satellites.value() >= 3 && gps.hdop.value() < 300) {
+        if (gps.location.isValid()) {
             double currentLat = gps.location.lat();
             double currentLng = gps.location.lng();
 
@@ -217,45 +191,21 @@ void mainTaskFunction(void * parameter) {
                 if (millis() - lastPostTime >= postInterval) {
                     lastPostTime = millis();
                     
-                    if (isWiFiConnected) {
-                        // Print debug info
-                        Serial.println("Posting GPS Data:");
-                        Serial.print("Lat: "); Serial.print(currentLat, 6);
-                        Serial.print(" Lng: "); Serial.println(currentLng, 6);
-                        Serial.print("Satellites: "); Serial.println(gps.satellites.value());
-                        Serial.print("HDOP: "); Serial.println(gps.hdop.value());
-                        
-                        postGPSData(currentLat, currentLng);
-                        
-                        float acceleroData[3] = {
-                            a.acceleration.x,
-                            a.acceleration.y,
-                            a.acceleration.z
-                        };
-                        float gyroData[3] = {
-                            g.gyro.x,
-                            g.gyro.y,
-                            g.gyro.z
-                        };
-                        
-                        // Print debug info
-                        Serial.println("Posting Accelerometer Data:");
-                        Serial.printf("Accelero: X=%.2f Y=%.2f Z=%.2f\n", 
-                            acceleroData[0], acceleroData[1], acceleroData[2]);
-                        Serial.printf("Gyro: X=%.2f Y=%.2f Z=%.2f\n", 
-                            gyroData[0], gyroData[1], gyroData[2]);
-                            
-                        postAccelerometerData(acceleroData, gyroData);
-                    } else {
-                        Serial.println("Cannot post data - WiFi not connected");
-                    }
+                    postGPSData(currentLat, currentLng);
+                    
+                    float acceleroData[3] = {
+                        a.acceleration.x,
+                        a.acceleration.y,
+                        a.acceleration.z
+                    };
+                    float gyroData[3] = {
+                        g.gyro.x,
+                        g.gyro.y,
+                        g.gyro.z
+                    };
+                    
+                    postAccelerometerData(acceleroData, gyroData);
                 }
-            }
-        } else {
-            if (gps.location.isValid()) {
-                Serial.println("GPS signal too weak or inaccurate:");
-                Serial.print("Satellites: "); Serial.println(gps.satellites.value());
-                Serial.print("HDOP: "); Serial.println(gps.hdop.value());
             }
         }
         vTaskDelay(pdMS_TO_TICKS(100)); // 100ms delay
@@ -369,32 +319,29 @@ void getNavigationInstructions() {
 
 // Function to post GPS data
 void postGPSData(double latitude, double longitude) {
-                WiFiClientSecure client;
-                client.setInsecure(); // Not validating SSL certificate (for testing only)
-                HTTPClient https;
+    WiFiClientSecure client;
+    client.setInsecure(); // Not validating SSL certificate (for testing only)
+    HTTPClient https;
 
     if (https.begin(client, GPS_DISTANCE_API)) {
-                    https.addHeader("Content-Type", "application/json");
+        https.addHeader("Content-Type", "application/json");
 
-                    String jsonData = "{\"latitude\":";
-        jsonData += String(latitude, 6); // Increase precision to 6 decimal places
-                    jsonData += ",\"longitude\":";
-        jsonData += String(longitude, 6);
-                    jsonData += "}";
+        String jsonData = "{\"latitude\":";
+        jsonData += String(latitude);
+        jsonData += ",\"longitude\":";
+        jsonData += String(longitude);
+        jsonData += "}";
 
-                    int httpResponseCode = https.POST(jsonData);
+        int httpResponseCode = https.POST(jsonData);
         Serial.print("GPS POST Response Code: ");
-                    Serial.println(httpResponseCode);
+        Serial.println(httpResponseCode);
         
         if (httpResponseCode > 0) {
             String response = https.getString();
             Serial.println("GPS Response: " + response);
-        } else {
-            Serial.print("GPS POST Error: ");
-            Serial.println(https.errorToString(httpResponseCode));
         }
         
-                    https.end();
+        https.end();
     } else {
         Serial.println("GPS HTTPS connection failed");
     }
@@ -403,35 +350,33 @@ void postGPSData(double latitude, double longitude) {
 // Function to post accelerometer data
 void postAccelerometerData(float accelero[3], float gyro[3]) {
     WiFiClientSecure client;
-    client.setInsecure();
+    client.setInsecure(); // Not validating SSL certificate (for testing only)
     HTTPClient https;
 
     if (https.begin(client, GYRO_FALL_API)) {
-                    https.addHeader("Content-Type", "application/json");
+        https.addHeader("Content-Type", "application/json");
 
+        // Format JSON to match curl request format
         String jsonData = "{\"accelero\":[";
-        jsonData += String(accelero[0], 2) + ",";  // Increase precision to 2 decimal places
-        jsonData += String(accelero[1], 2) + ",";
-        jsonData += String(accelero[2], 2);
+        jsonData += String(accelero[0], 1) + ",";  // x-axis
+        jsonData += String(accelero[1], 1) + ",";  // y-axis
+        jsonData += String(accelero[2], 1);        // z-axis
         jsonData += "],\"gyro\":[";
-        jsonData += String(gyro[0], 2) + ",";
-        jsonData += String(gyro[1], 2) + ",";
-        jsonData += String(gyro[2], 2);
+        jsonData += String(gyro[0], 1) + ",";      // x-axis
+        jsonData += String(gyro[1], 1) + ",";      // y-axis
+        jsonData += String(gyro[2], 1);            // z-axis
         jsonData += "]}";
 
-                    int httpResponseCode = https.POST(jsonData);
+        int httpResponseCode = https.POST(jsonData);
         Serial.print("Accelerometer POST Response Code: ");
-                    Serial.println(httpResponseCode);
+        Serial.println(httpResponseCode);
         
         if (httpResponseCode > 0) {
             String response = https.getString();
             Serial.println("Accelerometer Response: " + response);
-        } else {
-            Serial.print("Accelerometer POST Error: ");
-            Serial.println(https.errorToString(httpResponseCode));
         }
         
-                    https.end();
+        https.end();
     } else {
         Serial.println("Accelerometer HTTPS connection failed");
     }
