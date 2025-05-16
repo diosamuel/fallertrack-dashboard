@@ -6,8 +6,6 @@ dist/
 
 # misc
 .DS_Store
-.env
-.env.*
 
 # local
 *.local.js
