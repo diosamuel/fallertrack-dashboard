@@ -60,7 +60,7 @@ The dashboard connects to the FallerTrack Backend API for:
 ## 📚 Documentation
 
 For complete API documentation, visit:
-- [Backend API Documentation](https://github.com/reannn22/falltrack-backend)
+- [Backend API Documentation](https://github.com/reannn22/fallertrack-be)
 
 ## 🛠️ Docker Deployment
 
