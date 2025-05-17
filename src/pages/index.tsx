@@ -53,6 +53,22 @@ const MapPage = () => {
   const [sosMarkerRefs, setSosMarkerRefs] = useState<google.maps.marker.AdvancedMarkerElement[]>([]);
   const [isHouseInfoOpen, setIsHouseInfoOpen] = useState(false);
   const [selectedSOS, setSelectedSOS] = useState<string | null>(null);
+  
+  // Add state to store previous location
+  const previousLocation = useRef<LatLngLiteral | null>(null);
+
+  // Helper function to check if location has changed significantly
+  const hasLocationChangedSignificantly = (prev: LatLngLiteral | null, current: LatLngLiteral) => {
+    if (!prev) return true;
+    
+    // Calculate distance between points (using simple distance formula)
+    // You can adjust the threshold based on your needs
+    const threshold = 0.00001; // Approximately 1 meter
+    const latDiff = Math.abs(prev.lat - current.lat);
+    const lngDiff = Math.abs(prev.lng - current.lng);
+    
+    return latDiff > threshold || lngDiff > threshold;
+  };
 
   // Fetch home location data
   useEffect(() => {
@@ -87,8 +103,14 @@ const MapPage = () => {
         });
 
         const { latitude, longitude } = response.data;
-        console.log('Current location updated:', { latitude, longitude });
-        setPosisiLansia({ lat: latitude, lng: longitude });
+        const newLocation = { lat: latitude, lng: longitude };
+
+        // Only update state and log if location has changed significantly
+        if (hasLocationChangedSignificantly(previousLocation.current, newLocation)) {
+          console.log('Current location updated:', { latitude, longitude });
+          setPosisiLansia(newLocation);
+          previousLocation.current = newLocation;
+        }
       } catch (error) {
         if (axios.isAxiosError(error)) {
           console.error('Error fetching current location:', {
@@ -310,7 +332,7 @@ const MapPage = () => {
           >
             <div className={`flex flex-col items-center justify-center animate-pulse overflow-hidden cursor-pointer`}>
               <img
-                src="https://randomuser.me/api/portraits/women/44.jpg"
+                src="https://img.freepik.com/free-photo/portrait-wise-person_52683-100915.jpg?semt=ais_hybrid&w=740"
                 alt="Person location"
                 className={`w-14 h-14 object-cover rounded-full ${isSOSActive ? 'border-2 border-red-500' : 'bg-white'}`}
               />
