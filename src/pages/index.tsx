@@ -332,9 +332,9 @@ const MapPage = () => {
           >
             <div className={`flex flex-col items-center justify-center animate-pulse overflow-hidden cursor-pointer`}>
               <img
-                src="https://img.freepik.com/free-photo/portrait-wise-person_52683-100915.jpg?semt=ais_hybrid&w=740"
+                src="https://randomuser.me/api/portraits/women/44.jpg"
                 alt="Person location"
-                className={`w-14 h-14 object-cover rounded-full ${isSOSActive ? 'border-2 border-red-500' : 'bg-white'}`}
+                className={`w-14 h-14 object-cover rounded-full ${isSOSActive ? 'border-4 border-red-500' : 'bg-white'}`}
               />
             </div>
           </AdvancedMarker>

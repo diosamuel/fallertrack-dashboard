@@ -87,7 +87,7 @@ const FallDetectionAlert: React.FC = () => {
             <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg mb-1">Fall Detected!</h3>
-              <p className="text-sm opacity-90">{fallData.elderlyInfo.name} has fallen</p>
+              <p className="text-sm opacity-90">Ms Elderina has fallen</p>
               <div className="mt-3 text-sm space-y-1 opacity-80">
                 <p>Location: {fallData.latitude.toFixed(6)}, {fallData.longitude.toFixed(6)}</p>
                 <p>Time: {new Date(fallData.timestamp).toLocaleString()}</p>
