@@ -128,8 +128,8 @@ const MapPage = () => {
     // Initial fetch
     fetchCurrentLocation();
 
-    // Set up interval for auto-refresh every 3 seconds
-    const intervalId = setInterval(fetchCurrentLocation, 10000);
+    // Set up interval for auto-refresh every 5 minutes
+    const intervalId = setInterval(fetchCurrentLocation, 300000);
 
     // Cleanup function to clear interval when component unmounts
     return () => clearInterval(intervalId);
