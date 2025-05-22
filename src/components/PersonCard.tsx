@@ -70,12 +70,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          limit: 50,
-          startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          endDate: new Date().toISOString()
-        })
+        }
       });
 
       if (!response.ok) {
